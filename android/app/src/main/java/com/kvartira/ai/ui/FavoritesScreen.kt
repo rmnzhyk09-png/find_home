@@ -34,10 +34,7 @@ fun FavoritesScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AxisTopBar(
-                title = "Избранное",
-                subtitle = "Ваш шорт-лист квартир"
-            )
+            AxisTopBar()
         }
     ) { pad ->
         if (favorites.isEmpty()) {
@@ -51,7 +48,7 @@ fun FavoritesScreen(
                     Box(
                         Modifier
                             .size(96.dp)
-                            .background(Axis.GreenPale, CircleShape),
+                            .background(Axis.Lighter, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("🏙", fontSize = 46.sp)

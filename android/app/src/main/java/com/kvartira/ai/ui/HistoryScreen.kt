@@ -41,10 +41,7 @@ fun HistoryScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AxisTopBar(
-                title = "История запросов",
-                subtitle = "Нажмите, чтобы повторить запрос"
-            )
+            AxisTopBar()
         }
     ) { pad ->
         if (history.isEmpty()) {
@@ -58,7 +55,7 @@ fun HistoryScreen(
                     Box(
                         Modifier
                             .size(96.dp)
-                            .background(Axis.GreenPale, CircleShape),
+                            .background(Axis.Lighter, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("🗂", fontSize = 46.sp)

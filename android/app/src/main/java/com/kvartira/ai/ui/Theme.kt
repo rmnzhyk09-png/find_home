@@ -10,80 +10,70 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/** AXIS-палитра из макета Figma (iPhone 16/17 Pro Max). */
+/** Палитра с макета пользователя: тёмно-зелёная шапка, салатовые карточки. */
 object Axis {
-    val Green = Color(0xFF116E25)
-    val GreenBright = Color(0xFF007C34)
-    val GreenLight = Color(0xFF94CD7A)
-    val GreenPale = Color(0xFFE7F2DF)
-    val Ink = Color(0xFF25412B)
-    val Bg = Color(0xFFF3F6F1)
-    val Card = Color(0xFFFFFFFF)
-    val Border = Color(0xFFDDE5D6)
-    val Muted = Color(0xFF68726C)
-
-    val M2 = Color(0xFF1B5E20)
-    val M2Bg = Color(0xFFE0F2E6)
-    val DomClick = Color(0xFFB3261E)
-    val DomClickBg = Color(0xFFFCE8E6)
-    val DomRf = Color(0xFF0B57D0)
-    val DomRfBg = Color(0xFFE3F0FD)
-    val Cian = Color(0xFF116E25)
-    val CianBg = Color(0xFFE7F2DF)
-    val Base = Color(0xFF5F6368)
-    val BaseBg = Color(0xFFE9EDF0)
+    val Dark = Color(0xFF0C5C21)
+    val DarkDeep = Color(0xFF073D16)
+    val Ink = Color(0xFF0C3D18)
+    val Light = Color(0xFF9CCB9B)
+    val Lighter = Color(0xFFB7DDB4)
+    val Pale = Color(0xFFEDF3E6)
+    val Text = Color(0xFF14331D)
+    val Muted = Color(0xFF5F7261)
+    val Heart = Color(0xFFE0393E)
+    val White = Color(0xFFFFFFFF)
 }
 
 private val LightColors = lightColorScheme(
-    primary = Axis.Green,
+    primary = Axis.Dark,
     onPrimary = Color.White,
-    primaryContainer = Axis.GreenPale,
+    primaryContainer = Axis.Light,
     onPrimaryContainer = Axis.Ink,
-    secondary = Axis.GreenBright,
+    secondary = Axis.Dark,
     onSecondary = Color.White,
-    secondaryContainer = Axis.GreenLight,
+    secondaryContainer = Axis.Lighter,
     onSecondaryContainer = Axis.Ink,
-    tertiary = Axis.GreenLight,
+    tertiary = Axis.Light,
     onTertiary = Axis.Ink,
-    background = Axis.Bg,
-    onBackground = Color(0xFF1D2622),
-    surface = Axis.Card,
-    onSurface = Color(0xFF1D2622),
-    surfaceVariant = Axis.GreenPale,
+    background = Axis.Pale,
+    onBackground = Axis.Text,
+    surface = Axis.White,
+    onSurface = Axis.Text,
+    surfaceVariant = Axis.Lighter,
     onSurfaceVariant = Axis.Muted,
-    outline = Axis.Border,
-    error = Color(0xFFD33),
+    outline = Color(0xFFD9E4D2),
+    error = Color(0xFFC0392B),
     onError = Color.White
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Axis.GreenLight,
-    onPrimary = Color(0xFF12321B),
-    primaryContainer = Axis.Ink,
-    onPrimaryContainer = Color(0xFFD6EBCB),
-    secondary = Color(0xFF94CD7A),
-    onSecondary = Color(0xFF12321B),
-    secondaryContainer = Color(0xFF2E5745),
-    onSecondaryContainer = Color(0xFFD6EBCB),
-    tertiary = Color(0xFF94CD7A),
-    onTertiary = Color(0xFF12321B),
-    background = Color(0xFF0F1712),
+    primary = Axis.Light,
+    onPrimary = Axis.Ink,
+    primaryContainer = Axis.Dark,
+    onPrimaryContainer = Color(0xFFD9EBCF),
+    secondary = Axis.Light,
+    onSecondary = Axis.Ink,
+    secondaryContainer = Color(0xFF1E4A2A),
+    onSecondaryContainer = Color(0xFFD9EBCF),
+    tertiary = Axis.Light,
+    onTertiary = Axis.Ink,
+    background = Color(0xFF0A140D),
     onBackground = Color(0xFFE4EBE1),
-    surface = Color(0xFF161F18),
+    surface = Color(0xFF122114),
     onSurface = Color(0xFFE4EBE1),
-    surfaceVariant = Color(0xFF26322B),
+    surfaceVariant = Color(0xFF1E3324),
     onSurfaceVariant = Color(0xFFAAB8AB),
-    outline = Color(0xFF33473A),
-    error = Color(0xFFFF6E6E),
+    outline = Color(0xFF2A4432),
+    error = Color(0xFFFF8A80),
     onError = Color(0xFF3A0000)
 )
 
-private val AxisShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(12.dp),
+private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(12.dp),
+    small = RoundedCornerShape(14.dp),
     medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp)
 )
 
 @Composable
@@ -91,7 +81,7 @@ fun KvartiraTheme(content: @Composable () -> Unit) {
     val dark = isSystemInDarkTheme()
     MaterialTheme(
         colorScheme = if (dark) DarkColors else LightColors,
-        shapes = AxisShapes,
+        shapes = AppShapes,
         content = content
     )
 }

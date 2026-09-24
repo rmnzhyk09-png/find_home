@@ -96,8 +96,6 @@ fun ChatScreen(vm: MainViewModel, onOpenSettings: () -> Unit, onOpenApartmentUrl
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AxisTopBar(
-                title = "Робот-автоматизатор",
-                subtitle = "Сам сканирует площадки и подбирает жильё",
                 actions = {
                     if (ui.scraperNote.isNotBlank()) {
                         IconButton(onClick = { vm.refreshListings() }) {

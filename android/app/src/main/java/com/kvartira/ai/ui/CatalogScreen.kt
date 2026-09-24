@@ -81,8 +81,6 @@ fun CatalogScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AxisTopBar(
-                title = "Каталог",
-                subtitle = note.ifBlank { "Объявления с площадок и базы" },
                 actions = {
                     IconButton(onClick = onRefresh) {
                         Icon(Icons.Default.Refresh, contentDescription = "Загрузить с площадок", tint = Color.White)

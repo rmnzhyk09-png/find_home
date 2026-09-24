@@ -42,10 +42,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kvartira.ai.ai.LocalBrain
@@ -83,75 +83,46 @@ fun AxisEnter(index: Int = 0, modifier: Modifier = Modifier, content: @Composabl
     )
 }
 
-@Composable
-fun AxisLogo(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(38.dp)
-            .background(Axis.GreenLight, RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "AXIS",
-                color = Axis.Ink,
-                fontWeight = FontWeight.Black,
-                fontSize = 11.sp,
-                letterSpacing = 0.5.sp
-            )
-            Box(
-                Modifier
-                    .size(4.dp)
-                    .background(Axis.GreenBright, CircleShape)
-            )
-        }
-    }
-}
-
+/** Тёмная шапка с центральной светлой пилюлей (как в макете). */
 @Composable
 fun AxisTopBar(
-    title: String,
-    subtitle: String = "",
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    Surface(color = MaterialTheme.colorScheme.primary, shadowElevation = 8.dp) {
-        Row(
+    Surface(color = Axis.Dark, shadowElevation = 8.dp) {
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            AxisLogo()
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                if (subtitle.isNotBlank()) {
-                    Text(
-                        subtitle,
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 12.sp
-                    )
-                }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .background(Axis.Light, CircleShape)
+                    .padding(horizontal = 34.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    "AI Застройщик",
+                    color = Axis.Ink,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 20.sp
+                )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, content = actions)
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                verticalAlignment = Alignment.CenterVertically,
+                content = actions
+            )
         }
     }
 }
 
 @Composable
 fun SourceBadge(source: String) {
-    val (bg, fg) = when (source) {
-        "M2.ru" -> Axis.M2Bg to Axis.M2
-        "ДомКлик" -> Axis.DomClickBg to Axis.DomClick
-        "Дом.РФ" -> Axis.DomRfBg to Axis.DomRf
-        "Циан" -> Axis.CianBg to Axis.Cian
-        else -> Axis.BaseBg to Axis.Base
-    }
-    Surface(color = bg, shape = CircleShape) {
+    Surface(color = Color.White.copy(alpha = 0.92f), shape = CircleShape) {
         Text(
             text = source,
-            color = fg,
+            color = Axis.Ink,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
@@ -189,7 +160,7 @@ private fun FavoriteButton(
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (isFavorite) "Убрать из избранного" else "В избранное",
-                tint = if (isFavorite) Color(0xFFFF5252) else Axis.Ink,
+                tint = if (isFavorite) Axis.Heart else Axis.Ink,
                 modifier = Modifier
                     .size(21.dp)
                     .graphicsLayer {
@@ -201,6 +172,7 @@ private fun FavoriteButton(
     }
 }
 
+/** Карточка по макету: салатовый корпус + тёмная полоса цены. */
 @Composable
 fun ApartmentCard(
     apartment: Apartment,
@@ -209,132 +181,112 @@ fun ApartmentCard(
     onToggleFavorite: () -> Unit,
     onClick: () -> Unit = {}
 ) {
-    val cardShape = RoundedCornerShape(18.dp)
     Surface(
-        shape = cardShape,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(24.dp),
+        color = Axis.Light,
+        shadowElevation = 3.dp,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        Column {
-            // Фото-плашка
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(104.dp)
-                    .background(
-                        Brush.linearGradient(listOf(Axis.GreenLight, Axis.GreenBright))
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("🏙", fontSize = 42.sp)
-                Surface(
-                    color = Color.White.copy(alpha = 0.92f),
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 8.dp)
-                        .size(40.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SourceBadge(apartment.source)
+                Spacer(Modifier.weight(1f))
+                FavoriteButton(isFavorite = isFavorite, onToggleFavorite = onToggleFavorite)
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${apartment.rooms}-комн., ${apartment.area.toInt()} м²",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 19.sp,
+                    color = Axis.Ink
+                )
+                if (percent != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Surface(color = Color.White.copy(alpha = 0.85f), shape = CircleShape) {
                         Text(
-                            text = "${apartment.rooms}",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
-                            color = Axis.Green
+                            text = "$percent%",
+                            color = Axis.Ink,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
-            Column(Modifier.padding(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = Axis.GreenPale,
-                        shape = CircleShape,
-                        modifier = Modifier.padding(end = 6.dp)
-                    ) {
-                        Text(
-                            text = "${LocalBrain.formatPrice(apartment.price)}",
-                            color = Axis.Green,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    FavoriteButton(isFavorite = isFavorite, onToggleFavorite = onToggleFavorite)
-                }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "${apartment.district} • ${apartment.address}",
+                color = Axis.Muted,
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (apartment.description.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = apartment.description,
+                    color = Axis.Text,
+                    fontSize = 13.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (apartment.features.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "${apartment.rooms}-комн., ${apartment.area.toInt()} м²",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "${apartment.district} • ${apartment.address}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.5.sp,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-                if (apartment.description.isNotBlank()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = apartment.description,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                        fontSize = 12.sp,
-                        maxLines = 2,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                }
-                if (apartment.features.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        apartment.features.take(5).forEach { f ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = CircleShape
-                            ) {
-                                Text(
-                                    f,
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
-                                )
-                            }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    apartment.features.take(5).forEach { f ->
+                        Surface(
+                            color = Color.White.copy(alpha = 0.6f),
+                            shape = CircleShape
+                        ) {
+                            Text(
+                                f,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Axis.Ink,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
                         }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (percent != null) {
-                        Text(
-                            text = "$percent%",
-                            color = Axis.GreenBright,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 13.sp
-                        )
-                        Spacer(Modifier.width(6.dp))
-                    }
+            }
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                color = Axis.Dark,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 13.dp)
+                ) {
                     Text(
-                        text = "${apartment.source}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 10.5.sp
+                        text = LocalBrain.formatPrice(apartment.price),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = Color.White
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "≈ ${LocalBrain.formatPrice(apartment.pricePerMeter)}/м²",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                     Spacer(Modifier.weight(1f))
                     Text(
-                        text = "${apartment.floor}/${apartment.totalFloors} эт",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 10.5.sp
+                        text = "→",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
                     )
                 }
             }

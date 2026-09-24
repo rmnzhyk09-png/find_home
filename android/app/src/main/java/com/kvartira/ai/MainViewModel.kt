@@ -47,7 +47,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 history = db.getHistory(),
                 autoScan = prefs.getBoolean("autoscan", true),
                 chat = listOf(
-                    ChatMessage(text = "Привет! 🤖 AXIS — робот-автоматизатор подбора жилья.\n" +
+                    ChatMessage(text = "Привет! Я AI Застройщик — ваш помощник для поиска жилья.\n" +
                         "Сам сканирую площадки (Циан, M2.ru, Дом.РФ, ДомКлик) и подбираю по чётким правилам.\n" +
                         "Напишите одной строкой: город, комнаты, бюджет и что нужно рядом (парк, школа, метро).", fromUser = false)
                 )
