@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AI Застройщик — подбор жилья</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-spacer"></div>
+            <div class="title-pill">AI Застройщик</div>
+            <nav class="icon-nav" id="iconNav">
+                <button class="icon-btn active" data-tab="chat" title="Поиск"><span class="ic">🔍<i>AI</i></span></button>
+                <button class="icon-btn" data-tab="catalog" title="Каталог"><span class="ic">🏘</span></button>
+                <button class="icon-btn" data-tab="favorites" title="Избранное"><span class="ic">❤️</span><span id="favCount" class="badge"></span></button>
+                <button class="icon-btn" data-tab="history" title="История"><span class="ic">👤</span></button>
+            </nav>
+        </header>
+
+        <div class="layout" id="layout">
+            <aside class="sidebar" id="sidebar">
+                <button class="collapse" id="collapseBtn" title="Скрыть панель">◀</button>
+                <div class="sidebar-title">История запросов</div>
+                <div id="sideHistory" class="side-history"></div>
+                <button id="refreshBtnSide" class="side-refresh">🔄 Обновить с площадок</button>
+                <div id="sideNote" class="note"></div>
+            </aside>
+            <button class="expand" id="expandBtn" title="Показать панель" hidden>▶</button>
+
+            <main class="content">
+                <section id="pane-chat" class="pane active">
+                    <div id="heroCard" class="hero">Ваш помощник<br>для поиска жилья</div>
+                    <div id="chatList" class="chat-list"></div>
+                    <div class="composer">
+                        <div id="suggestions" class="suggestions"></div>
+                        <label id="typing" class="typing" hidden>Робот сканирует площадки…</label>
+                        <div class="composer-pill">
+                            <button id="voiceBtn" class="mic" title="Голосовой ввод" type="button">🎤</button>
+                            <input id="chatInput" type="text"
+                                placeholder="Опишите квартиру вашей мечты"
+                                autocomplete="off">
+                            <button id="sendBtn" class="send" type="button" title="Найти">➤</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="pane-catalog" class="pane">
+                    <div class="filters">
+                        <input id="fRegion" class="f" type="text" placeholder="Регион">
+                        <input id="fCity" class="f" type="text" placeholder="Город">
+                        <select id="fRooms" class="f">
+                            <option value="">Комнатность</option>
+                            <option value="1">1 комн.</option>
+                            <option value="2">2 комн.</option>
+                            <option value="3">3 комн.</option>
+                            <option value="4">4+ комн.</option>
+                        </select>
+                        <input id="fBudget" class="f" type="text" inputmode="numeric" placeholder="Бюджет, млн ₽">
+                        <button id="fReset" class="f-reset">Сброс</button>
+                    </div>
+                    <div class="infra">
+                        <span class="infra-label">Инфраструктура рядом:</span>
+                        <div id="infraChips" class="chips">
+                            <button class="chip" data-infra="метро">🚇 Метро</button>
+                            <button class="chip" data-infra="парк">🌳 Парк</button>
+                            <button class="chip" data-infra="школа">🎓 Школа</button>
+                            <button class="chip" data-infra="детский сад">👶 Детский сад</button>
+                            <button class="chip" data-infra="магазины">🛒 Магазины</button>
+                            <button class="chip" data-infra="поликлиника">⚕️ Поликлиника</button>
+                            <button class="chip" data-infra="спорт">🏋️ Спорт</button>
+                            <button class="chip" data-infra="транспорт">🚌 Транспорт</button>
+                        </div>
+                    </div>
+                    <div class="catalog-toolbar">
+                        <input id="catSearch" type="text" placeholder="Поиск по адресу, району, фичам…">
+                        <div class="chips">
+                            <button id="sortPrice" class="chip">Цена ↑</button>
+                            <button id="refreshBtn" class="chip accent">🔄 Обновить с площадок</button>
+                        </div>
+                        <div id="catalogNote" class="note"></div>
+                    </div>
+                    <div id="catalogList" class="cards"></div>
+                </section>
+
+                <section id="pane-favorites" class="pane">
+                    <div id="favoritesList" class="cards"></div>
+                </section>
+
+                <section id="pane-history" class="pane">
+                    <div class="history-head">
+                        <span class="history-title">История запросов</span>
+                        <button id="clearHistoryBtn" class="h-clear">🗑 Очистить</button>
+                    </div>
+                    <div id="historyList" class="history"></div>
+                </section>
+            </main>
+        </div>
+
+        <nav class="bottom-nav" id="bottomNav">
+            <button class="icon-btn active" data-tab="chat" title="Поиск"><span class="ic">🔍<i>AI</i></span></button>
+            <button class="icon-btn" data-tab="catalog" title="Каталог"><span class="ic">🏘</span></button>
+            <button class="icon-btn" data-tab="favorites" title="Избранное"><span class="ic">❤️</span></button>
+            <button class="icon-btn" data-tab="history" title="История"><span class="ic">👤</span></button>
+        </nav>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+    <script src="/js/app.js"></script>
+</body>
+</html>

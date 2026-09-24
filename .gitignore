@@ -1,0 +1,11 @@
+node_modules/
+.vercel/
+.env
+.env.local
+build/
+.gradle/
+.kotlin/
+.idea/
+*.apk
+.DS_Store
+local.properties

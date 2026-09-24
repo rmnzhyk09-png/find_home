@@ -1,0 +1,23 @@
+# Gradle
+.gradle/
+build/
+app/build/
+captures/
+
+# Kotlin
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Локальная конфигурация SDK (пути машины, не должно попадать в репозиторий)
+local.properties
+
+# Логи и временное
+*.log
+*.tmp
+.DS_Store
