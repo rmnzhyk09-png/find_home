@@ -276,13 +276,22 @@ interface FilterSectionProps {
   children: React.ReactNode;
 }
 
+function renderSectionIcon(icon: FilterSectionProps['icon']) {
+  if (icon == null) return null;
+  // lucide-иконки — это forwardRef-объекты ($$typeof), а не функции
+  if (React.isValidElement(icon)) return icon;
+  return React.createElement(icon as React.ComponentType<{ className?: string }>, {
+    className: 'h-5 w-5',
+  });
+}
+
 function FilterSection({ title, expanded, onToggle, icon, children }: FilterSectionProps) {
   return (
     <Card>
       <CardHeader className="p-3 pb-0" onClick={onToggle}>
         <div className="flex items-center justify-between cursor-pointer">
           <CardTitle className="text-base font-medium">{title}</CardTitle>
-          <span className="text-muted-foreground">{typeof icon === 'function' ? React.createElement(icon, { className: 'h-5 w-5' }) : icon}</span>
+          <span className="text-muted-foreground">{renderSectionIcon(icon)}</span>
         </div>
       </CardHeader>
       <AnimatePresence>
