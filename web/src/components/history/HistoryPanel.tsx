@@ -154,6 +154,7 @@ function formatFilter(key: string, value: any): string {
     case 'minArea': return `от ${value}м²`;
     case 'maxArea': return `до ${value}м²`;
     case 'district': return value;
+    case 'excludeDistrict': return `кроме ${String(value).toLowerCase()}`;
     default: return String(value);
   }
 }
