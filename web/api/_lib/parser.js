@@ -528,6 +528,23 @@ function citySanity(results, city) {
   );
 }
 
+function dedupeResults(items) {
+  const seen = new Set();
+  const out = [];
+  for (const a of items) {
+    const key = [
+      (a.address || "").toLowerCase().replace(/[\s,.]+/g, ""),
+      Math.round((a.price || 0) / 1000),
+      a.rooms || "",
+      Math.round(a.area || 0),
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(a);
+  }
+  return out;
+}
+
 async function fetchAllSources(city) {
   const results0 = [];
   const sources = {};
@@ -537,7 +554,7 @@ async function fetchAllSources(city) {
     parseCian(results0, sources, city),
     parseJsonLd("ДомКлик", "https://domclick.ru/", results0, sources, city),
   ]);
-  const results = citySanity(results0, city);
+  const results = dedupeResults(citySanity(results0, city));
   return { results, sources };
 }
 

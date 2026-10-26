@@ -345,7 +345,7 @@ module.exports = async function handler(req, res) {
       cached = true;
       relaxed = null;
     } else {
-      const { results, sources: src } = await fetchAllSources(city);
+      const { results, sources: src } = await fetchAllSources(filters.city);
       sources = src;
       items = filterResults(results, filters);
       fetchedAt = new Date().toISOString();
