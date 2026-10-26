@@ -14,7 +14,7 @@ const {
   filterResults,
   cityName,
 } = require("./_lib/parser");
-const { llmEnabled, llmModel, chatComplete } = require("./_lib/llm");
+const { llmEnabled, llmModel, chatComplete, extractJSON } = require("./_lib/llm");
 
 // ---------- Города: основа из CITY_DB + сленг (из legacy app.js) ----------
 const CITIES = Object.entries(CITY_DB).map(([slug, v]) => [v.name.toLowerCase(), v.name, slug]);
@@ -181,20 +181,32 @@ async function parseNLWithLLM(message) {
   const sys =
     "Ты извлекаешь фильтры поиска квартиры из сообщения на русском. " +
     `Только JSON без пояснений, схема: ${JSON.stringify(LLM_FILTER_SCHEMA)}. ` +
-    "Цены в рублях (млн → ×1e6, тыс → ×1e3). Сленг: двушка=2, однушка=1, трёшка=3. " +
-    "«не в центре» → excludeDistrict='Центр'.";
+    "Цены в рублях (млн → ×1e6, тыс → ×1e3). Сленг: двушка=2, однушка=1, трёшка=3, нск=новосибирск. " +
+    "city — slug РОВНО из этого списка, иначе null: " + Object.keys(CITY_DB).join(", ") + ". " +
+    "«не в центре» → excludeDistrict='Центр'. keywords — инфраструктура из текста (метро, школа, парк, новостройка, ипотека, ремонт).";
   const text = await chatComplete(
     [
       { role: "system", content: sys },
       { role: "user", content: message },
     ],
-    { maxTokens: 300, temperature: 0 }
+    { maxTokens: 500, temperature: 0 }
   );
   if (!text) return null;
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) return null;
+  const candidates = [
+    text.match(/\{\s*"city"[\s\S]*?\}/),
+    text.match(/\{[\s\S]*\}/),
+  ].filter(Boolean);
+  let raw = null;
+  for (const m of candidates) {
+    // вычищаем возможный текст вокруг JSON, вырезаем жилые строки
+    const cleaned = m[0].replace(/^[^{]*/, "").replace(/[^}]*$/, "");
+    try {
+      raw = JSON.parse(cleaned);
+      break;
+    } catch {}
+  }
+  if (!raw) return null;
   try {
-    const raw = JSON.parse(m[0]);
     const filters = {};
     for (const k of Object.keys(LLM_FILTER_SCHEMA)) {
       if (k === "city") continue; // город маппится отдельно ниже
@@ -207,7 +219,7 @@ async function parseNLWithLLM(message) {
     }
     // slug города: точное совпадение либо по имени
     let slug =
-      typeof raw.city === "string" && CITY_DB[raw.city] ? raw.city : null;
+      typeof raw.city === "string" && CITY_DB[raw.city.toLowerCase()] ? raw.city.toLowerCase() : null;
     if (!slug && typeof raw.city === "string") {
       const known = Object.entries(CITY_DB).find(
         ([, v]) => v.name.toLowerCase() === raw.city.toLowerCase()
@@ -245,12 +257,16 @@ async function generateResponseLLM(filters, items, city) {
           `Найдено ${items.length} вариантов:\n${listing.join("\n") || "(пусто)"}`,
       },
     ],
-    { maxTokens: 220, temperature: 0.7 }
+    { maxTokens: 600, temperature: 0.7 }
   );
 }
 
-function generateResponse(filters, count) {
-  const parts = [];
+// спокойный дедуп: бесплатная Nemotron любит повторять своё предложение
+function dedupeSentence(text) {
+  return text.replace(/(.{40,}?)\s*\1/g, "$1").trim();
+}
+
+function generateResponse(filters, count) {  const parts = [];
   if (filters.rooms) parts.push(`${filters.rooms}-комнатную`);
   if (filters.maxPrice) parts.push(`до ${(filters.maxPrice / 1e6).toFixed(1)} млн`);
   if (filters.minPrice) parts.push(`от ${(filters.minPrice / 1e6).toFixed(1)} млн`);
@@ -309,22 +325,45 @@ module.exports = async function handler(req, res) {
     const key = "chat:" + JSON.stringify({ city, ...filters });
     const hit = cacheGet(key);
     let items, sources, fetchedAt, cached = false;
+    let relaxed = null;
 
     if (hit) {
       ({ items, sources, fetchedAt } = hit.data);
       cached = true;
+      relaxed = null;
     } else {
       const { results, sources: src } = await fetchAllSources(city);
       sources = src;
       items = filterResults(results, filters);
       fetchedAt = new Date().toISOString();
+      // Релаксация: чтобы не отвечать пустотой, понемногу ослабляем строгость
+      if (items.length === 0 && results.length > 0) {
+        const steps = [
+          { label: "без ключевых слов", f: { ...filters, keywords: undefined } },
+          { label: "без района", f: { ...filters, keywords: undefined, district: undefined, excludeDistrict: undefined } },
+          { label: "без площади", f: { ...filters, keywords: undefined, district: undefined, excludeDistrict: undefined, minArea: undefined, maxArea: undefined } },
+          { label: "только city+rooms", f: { ...filters, keywords: undefined, district: undefined, excludeDistrict: undefined, minArea: undefined, maxArea: undefined, maxPrice: undefined, minPrice: undefined } },
+        ];
+        for (const st of steps) {
+          const tryItems = filterResults(results, st.f);
+          if (tryItems.length > 0) {
+            items = tryItems;
+            relaxed = { dropped: st.label, appliedFilters: st.f };
+            break;
+          }
+        }
+        if (items.length === 0 && results.length > 0) {
+          items = results;
+          relaxed = { dropped: "все фильтры кроме города", appliedFilters: { city: filters.city } };
+        }
+      }
       cacheSet(key, { data: { items, sources, fetchedAt } });
     }
 
     let responseText = generateResponse(filters, items.length);
     try {
       const llmText = await generateResponseLLM(filters, items, filters.city);
-      if (llmText) responseText = llmText;
+      if (llmText) responseText = dedupeSentence(llmText);
     } catch {}
 
     res.status(200).json({
@@ -337,6 +376,7 @@ module.exports = async function handler(req, res) {
       sources,
       fetchedAt,
       cached,
+      relaxed, // {dropped, appliedFilters} | null — какие фильтры пришлось смягчить
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

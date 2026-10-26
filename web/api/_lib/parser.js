@@ -517,15 +517,27 @@ function filterResults(items, filters) {
 }
 
 // ---------- Сбор данных со всех площадок ----------
+// ---------- Сбор данных со всех площадок ----------
+
+// Санити: объявление должно упоминать запрошенный город (иначе Циан/WildCard отдаёт «дефолтный» город)
+function citySanity(results, city) {
+  const name = cityName(city);
+  if (!name || name === "—") return results;
+  return results.filter(
+    (a) => a.address && (a.address.toLowerCase().includes(name.toLowerCase()) || a.address.includes(", " + name))
+  );
+}
+
 async function fetchAllSources(city) {
-  const results = [];
+  const results0 = [];
   const sources = {};
   await Promise.allSettled([
-    parseDomRf(results, sources, city),
-    parseM2(results, sources, city),
-    parseCian(results, sources, city),
-    parseJsonLd("ДомКлик", "https://domclick.ru/", results, sources, city),
+    parseDomRf(results0, sources, city),
+    parseM2(results0, sources, city),
+    parseCian(results0, sources, city),
+    parseJsonLd("ДомКлик", "https://domclick.ru/", results0, sources, city),
   ]);
+  const results = citySanity(results0, city);
   return { results, sources };
 }
 
