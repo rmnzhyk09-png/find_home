@@ -528,6 +528,21 @@ function citySanity(results, city) {
   );
 }
 
+function decodeEntities(value) {
+  if (typeof value !== "string") return value;
+  return value
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&laquo;/g, "«")
+    .replace(/&raquo;/g, "»")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
 function dedupeResults(items) {
   const seen = new Set();
   const out = [];
@@ -554,7 +569,13 @@ async function fetchAllSources(city) {
     parseCian(results0, sources, city),
     parseJsonLd("ДомКлик", "https://domclick.ru/", results0, sources, city),
   ]);
-  const results = dedupeResults(citySanity(results0, city));
+  const results = dedupeResults(
+    citySanity(results0, city).map((a) => ({
+      ...a,
+      address: decodeEntities(a.address),
+      description: decodeEntities(a.description),
+    }))
+  );
   return { results, sources };
 }
 

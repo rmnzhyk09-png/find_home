@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { ApartmentCard, ApartmentSkeleton } from '@/components/apartment/ApartmentCard';
-import { cn, formatPrice, formatArea } from '@/lib/utils';
+import { cn, formatPrice, formatArea, pluralVariants } from '@/lib/utils';
 import type { Apartment, SearchFilters } from '@/types';
 
 type ViewMode = 'grid' | 'list';
@@ -75,7 +75,7 @@ export function ResultsGrid({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-muted/30 rounded-xl">
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">
-            Найдено <span className="font-semibold text-foreground">{apartments.length}</span> вариантов
+            Найдено <span className="font-semibold text-foreground">{apartments.length}</span> {pluralVariants(apartments.length)}
           </span>
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={onResetFilters} className="gap-1">

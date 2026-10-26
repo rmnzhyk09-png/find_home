@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Card, CardContent } from '@/components/ui/Card';
 import { api, parseNaturalLanguage, filtersToQueryString, getSuggestions } from '@/lib/api';
 import type { ChatResponse, ChatMessage, SearchFilters, Apartment } from '@/types';
-import { cn, formatPrice, formatArea, getSourceColor, generateId, getRelativeTime } from '@/lib/utils';
+import { cn, formatPrice, formatArea, getSourceColor, generateId, getRelativeTime, pluralVariants } from '@/lib/utils';
 import { useHistoryStore } from '@/lib/stores';
 
 interface ChatInterfaceProps {
@@ -225,7 +225,7 @@ export function ChatInterface({ onSearchResults, onViewModeChange }: ChatInterfa
                           onClick={() => onViewModeChange?.('catalog')}
                         >
                           <ArrowUpRight className="h-4 w-4 mr-1" />
-                          Показать все {message.apartments.length} вариантов
+                          Показать все {message.apartments.length} {pluralVariants(message.apartments.length)}
                         </Button>
                       )}
                     </div>

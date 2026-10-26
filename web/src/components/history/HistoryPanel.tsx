@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { ScrollArea } from '@/components/ui/ScrollArea';
-import { cn, formatPrice, getRelativeTime } from '@/lib/utils';
+import { cn, formatPrice, getRelativeTime, pluralVariants } from '@/lib/utils';
 import { useHistoryStore } from '@/lib/stores';
 import type { SearchFilters } from '@/types';
 
@@ -114,7 +114,7 @@ function HistoryItem({ item, onSearch, onRemove }: { item: { id: string; query: 
             </div>
 
             <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground ml-6">
-              <span className="font-medium text-foreground">{count} вариантов</span>
+              <span className="font-medium text-foreground">{count} {pluralVariants(count)}</span>
               <span>•</span>
               <span>{getRelativeTime(timestamp)}</span>
             </div>

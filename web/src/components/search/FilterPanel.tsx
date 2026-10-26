@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ScrollArea } from '@/components/ui/ScrollArea';
-import { cn, RU_CITIES, NSK_DISTRICTS } from '@/lib/utils';
+import { cn, RU_CITIES, NSK_DISTRICTS, pluralVariants } from '@/lib/utils';
 import type { SearchFilters } from '@/types';
 
 interface FilterPanelProps {
@@ -92,7 +92,7 @@ export function FilterPanel({
         {/* Results summary */}
         <div className="p-4 border-b bg-muted/30">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Найдено: <span className="text-primary">{totalCount}</span> вариантов</span>
+            <span className="text-sm font-medium">Найдено: <span className="text-primary">{totalCount}</span> {pluralVariants(totalCount)}</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {Object.entries(sources).map(([source, data]) => (
