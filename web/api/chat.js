@@ -243,10 +243,10 @@ async function generateResponseLLM(filters, items, city) {
       ).toFixed(2)} млн ₽ [${a.source}]`
   );
   const sys =
-    "Ты — дружелюбный ассистент по поиску недвижимости в России. Ответь на русском, " +
-    "сметой 1-2 предложения:_confirm найденные варианты, кратко подытожь цены, " +
-    "если ничего не нашлось — мягко посоветуй расширить бюджет, площадь или район. " +
-    "Без заголовков и списков, живым текстом.";
+    "Ты — дружелюбный ассистент по поиску недвижимости в России. Отвечай ТОЛЬКО по-русски, " +
+    "без рассуждений и английского текста: 1-2 живых предложения. Подтверди найденные варианты " +
+    "и кратко подытожь цены; если ничего не нашлось — мягко посоветуй расширить бюджет, площадь или район. " +
+    "Без заголовков, списков и markdown.";
   return await chatComplete(
     [
       { role: "system", content: sys },
@@ -257,7 +257,7 @@ async function generateResponseLLM(filters, items, city) {
           `Найдено ${items.length} вариантов:\n${listing.join("\n") || "(пусто)"}`,
       },
     ],
-    { maxTokens: 600, temperature: 0.7 }
+    { maxTokens: 600, temperature: 0.7, models: ["nvidia/nemotron-3.5-super-vl:free", "openrouter/free"] }
   );
 }
 
@@ -266,7 +266,20 @@ function dedupeSentence(text) {
   return text.replace(/(.{40,}?)\s*\1/g, "$1").trim();
 }
 
-function generateResponse(filters, count) {  const parts = [];
+// Ответ должен быть коротким русским текстом, а не английскими «мыслями» модели
+function sanitizeAnswer(text) {
+  if (!text) return null;
+  const t = dedupeSentence(text);
+  const hasRussian = /[а-яё]/i.test(t);
+  const looksLikeReasoning =
+    /^(the user|we need|let'?s|draft|analy[sz]e|i need|first,|step \d|response:|option \d)/i.test(t) ||
+    /(analy[sz]e the request|draft the response|constraints|schema|instruction)/i.test(t.slice(0, 600));
+  if (!hasRussian || looksLikeReasoning) return null;
+  return t.slice(0, 600);
+}
+
+function generateResponse(filters, count) {
+  const parts = [];
   if (filters.rooms) parts.push(`${filters.rooms}-комнатную`);
   if (filters.maxPrice) parts.push(`до ${(filters.maxPrice / 1e6).toFixed(1)} млн`);
   if (filters.minPrice) parts.push(`от ${(filters.minPrice / 1e6).toFixed(1)} млн`);
@@ -363,7 +376,9 @@ module.exports = async function handler(req, res) {
     let responseText = generateResponse(filters, items.length);
     try {
       const llmText = await generateResponseLLM(filters, items, filters.city);
-      if (llmText) responseText = dedupeSentence(llmText);
+      const clean = sanitizeAnswer(llmText);
+      if (clean) responseText = clean;
+      else if (llmText) console.warn("[chat] LLM-ответ отброшен: не похож на русский текст");
     } catch {}
 
     res.status(200).json({

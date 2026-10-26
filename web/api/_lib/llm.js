@@ -32,10 +32,10 @@ function extractJSON(ch) {
   return (msg.content && msg.content.trim()) || (msg.reasoning && msg.reasoning.trim()) || "";
 }
 
-async function chatComplete(messages, { maxTokens = 900, temperature = 0.4 } = {}) {
+async function chatComplete(messages, { maxTokens = 900, temperature = 0.4, models: preferred } = {}) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) return null;
-  const models = [llmModel(), ...FALLBACK_MODELS].filter(
+  const models = [...(preferred || []), llmModel(), ...FALLBACK_MODELS].filter(
     (m, i, arr) => m && arr.indexOf(m) === i
   );
   let lastErr = null;
