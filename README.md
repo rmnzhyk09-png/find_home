@@ -2,6 +2,16 @@
 
 Агрегатор объявлений о недвижимости (М2.ru, Циан, Дом.РФ, ДомКлик) с чат-поиском на естественном языке.
 
+## 🌐 Прод
+
+- Сайт: **https://findhome-zeta.vercel.app**
+- GitHub: **https://github.com/rmnzhyk09-png/find_home**
+- Vercel-проект: `find_home` (аккаунт `rmnzhyk09-png`), Source = `web/`
+
+## LLM
+
+Чат работает через **OpenRouter, только бесплатные модели** (`OPENROUTER_MODEL=nvidia/nemotron-3.5-super-vl:free`, фоллбэки в `web/api/_lib/llm.js`). Без ключа — regex-NLP фоллбэк. Env: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`.
+
 ## Структура
 
 - `web/` — **объединённое веб-приложение** (React + TypeScript + Vite + Tailwind + zustand + react-query; ранее это был vanilla-фронт + Express-бэк `KvartiraPro`). Деплой: Vercel, Root Directory = `web`.

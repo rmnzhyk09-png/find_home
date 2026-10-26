@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { FilterPanel } from '@/components/search/FilterPanel';
@@ -7,7 +7,6 @@ import { ResultsGrid } from '@/components/search/ResultsGrid';
 import { FavoritesPanel } from '@/components/favorites/FavoritesPanel';
 import { HistoryPanel } from '@/components/history/HistoryPanel';
 import { ApartmentModal } from '@/components/apartment/ApartmentModal';
-import { Toaster } from '@/components/ui/Toaster';
 import { useUIStore, useFavoritesStore } from '@/lib/stores';
 import { useApartments } from '@/hooks/useApartments';
 import type { Apartment, SearchFilters } from '@/types';
@@ -155,17 +154,14 @@ function Shell() {
         isOpen={!!selected}
         onClose={() => setSelected(null)}
       />
-      <Toaster />
     </div>
   );
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/*" element={<Shell />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/*" element={<Shell />} />
+    </Routes>
   );
 }
