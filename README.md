@@ -1,11 +1,19 @@
-# AI Zastroichik — робот-автоматизатор подбора жилья
+# AI Zastroichik — единый проект (веб + Android)
 
-Сам сканирует площадки (Циан, M2.ru, Дом.РФ, ДомКлик) и подбирает квартиры по чётким правилам — без внешнего ИИ.
+Агрегатор объявлений о недвижимости (М2.ru, Циан, Дом.РФ, ДомКлик) с чат-поиском на естественном языке.
 
 ## Структура
 
-- `web/` — сайт (деплой на Vercel, Root Directory `web`): чат-робот, каталог с живым сбором объявлений, избранное, история.
-  - Локальный запуск: `node local-server.js` → http://127.0.0.1:3000 (сервер лежит рядом, не коммитится).
-  - API: `web/api/parse.js` — сбор объявлений (`GET /api/parse?city=&rooms=&minPrice=&maxPrice=`).
-- `android/` — Android-приложение (Kotlin + Compose, minSdk 26): чат-робот, каталог 2-колоночной сеткой, избранное, история, SQLite-база, фоновое сканирование площадок.
+- `web/` — **объединённое веб-приложение** (React + TypeScript + Vite + Tailwind + zustand + react-query; ранее это был vanilla-фронт + Express-бэк `KvartiraPro`). Деплой: Vercel, Root Directory = `web`.
+  - `src/` — React-приложение (Vite entry: `index.html`).
+  - `api/` — Vercel serverless-функции:
+    - `GET /api/parse?city=&rooms=&minPrice=&maxPrice=` — оригинальный роут (проверяйте `res used` своей интеграции), формат ответа `{items, sources, count, filters, fetchedAt, cached}`.
+    - `GET /api/search` — то же, но расширенные фильтры (`minArea`, `maxArea`, `district`, `keywords`).
+    - `POST /api/chat` — NLP-парсер сообщения (`двушка до 5 млн в центре, рядом школа`), расширен словарём из legacy (`нск/мск/спб/екб`, «не в центре», инфраструктура: метро/школа/парк...).
+    - `GET /api/sources`, `GET /api/health`.
+  - `api/_lib/parser.js` — единая библиотека парсеров (Все api-роуты импортируют отсюда).
+  - `legacy/` — старый vanilla-фронт (index.html + js/app.js + css), сохранён для истории и как справочник словаря NLP.
+  - Локально: `npm i && npm run dev` (Vite на :3000; API через `vercel dev`). Сборка: `npm run build` → `dist/`.
+  - Env (опционально): см. `web/.env.example`.
+- `android/` — Android-приложение (Kotlin + Compose): роль-плей локальный парсер, каталог 2-му с builder flow, избранное, история, SQLite-база, ViewModel архитектура.
   - Сборка: `gradlew.bat :app:assembleDebug` (JDK 17+, Android SDK).
