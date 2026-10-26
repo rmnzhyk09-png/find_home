@@ -80,21 +80,88 @@ function districtOf(addr, fallbackDistrict) {
   return d || fallbackDistrict || "—";
 }
 
+// ---------- Реестр городов (глобальный поиск) ----------
+// Сл_unique M2-слаги проверены живьём против m2.ru (200/404).
+// cian — поддомен www.cian.ru; domrf — регион (если известен, иначе env).
+const CITY_DB = {
+  moscow: { name: "Москва", m2: "moskva", cian: "www" },
+  spb: { name: "Санкт-Петербург", m2: "sankt-peterburg", cian: "www" },
+  novosibirsk: { name: "Новосибирск", m2: "novosibirsk", cian: "nsk" },
+  ekaterinburg: { name: "Екатеринбург", m2: "yekaterinburg", cian: "ekb" },
+  kazan: { name: "Казань", m2: "kazan", cian: "kzn" },
+  ufa: { name: "Уфа", m2: "ufa", cian: "ufa" },
+  krasnoyarsk: { name: "Красноярск", m2: "krasnoyarsk", cian: "krasnoyarsk" },
+  samara: { name: "Самара", m2: "samara" },
+  omsk: { name: "Омск", m2: "omsk", cian: "omsk" },
+  chelyabinsk: { name: "Челябинск", m2: "chelyabinsk", cian: "chelyabinsk" },
+  perm: { name: "Пермь", m2: "perm" },
+  voronezh: { name: "Воронеж", m2: "voronezh" },
+  volgograd: { name: "Волгоград", m2: "volgograd" },
+  saratov: { name: "Саратов", m2: "saratov" },
+  tyumen: { name: "Тюмень", m2: "tyumen", cian: "tumen" },
+  tolyatti: { name: "Тольятти", m2: "tolyatti" },
+  izhevsk: { name: "Ижевск", m2: "izhevsk" },
+  barnaul: { name: "Барнаул", m2: "barnaul" },
+  ulyanovsk: { name: "Ульяновск", m2: "ulyanovsk" },
+  yaroslavl: { name: "Ярославль", m2: "yaroslavl" },
+  vladivostok: { name: "Владивосток", m2: "vladivostok" },
+  tomsk: { name: "Томск", m2: "tomsk" },
+  orenburg: { name: "Оренбург", m2: "orenburg" },
+  ryazan: { name: "Рязань", m2: "ryazan" },
+  penza: { name: "Пенза", m2: "penza" },
+  lipetsk: { name: "Липецк", m2: "lipetsk" },
+  kirov: { name: "Киров", m2: "kirov" },
+  tula: { name: "Тула", m2: "tula" },
+  cheboksary: { name: "Чебоксары", m2: "cheboksary" },
+  kaliningrad: { name: "Калининград", m2: "kaliningrad" },
+  kursk: { name: "Курск", m2: "kursk" },
+  ivanovo: { name: "Иваново", m2: "ivanovo" },
+  tver: { name: "Тверь", m2: "tver" },
+  bryansk: { name: "Брянск", m2: "bryansk" },
+  belgorod: { name: "Белгород", m2: "belgorod" },
+  vladimir: { name: "Владимир", m2: "vladimir" },
+  smolensk: { name: "Смоленск", m2: "smolensk" },
+  kostroma: { name: "Кострома", m2: "kostroma" },
+  pskov: { name: "Псков", m2: "pskov" },
+  vologda: { name: "Вологда", m2: "vologda" },
+  cherepovets: { name: "Череповец", m2: "cherepovets" },
+  taganrog: { name: "Таганрог", m2: "taganrog" },
+  stavropol: { name: "Ставрополь", m2: "stavropol" },
+  vladikavkaz: { name: "Владикавказ", m2: "vladikavkaz" },
+  sochi: { name: "Сочи", m2: "sochi" },
+  kurgan: { name: "Курган", m2: "kurgan" },
+  surgut: { name: "Сургут", m2: "surgut" },
+  yakutsk: { name: "Якутск", m2: "yakutsk" },
+  irkutsk: { name: "Иркутск", m2: "irkutsk" },
+  chita: { name: "Чита", m2: "chita" },
+  blagoveshchensk: { name: "Благовещенск", m2: "blagoveshchensk" },
+  nizhnevartovsk: { name: "Нижневартовск", m2: "nizhnevartovsk" },
+  khabarovsk: { name: "Хабаровск", m2: "khabarovsk" },
+  "yuzhno-sakhalinsk": { name: "Южно-Сахалинск", m2: "yuzhno-sakhalinsk" },
+  dzerzhinsk: { name: "Дзержинск", m2: "dzerzhinsk" },
+  "nizhny-novgorod": { name: "Нижний Новгород", m2: null, cian: "novgorod" },
+  "rostov-na-donu": { name: "Ростов-на-Дону", m2: null, cian: "rnd" },
+  krasnodar: { name: "Краснодар", m2: null, cian: "krd" },
+};
+
+function cityInfo(city) {
+  return CITY_DB[city] || null;
+}
+
+function cityName(city) {
+  const info = cityInfo(city);
+  return info ? info.name : "—";
+}
+
 function m2Slug(city) {
-  if (city === "moscow" || city === "moskva") return "moskva";
-  if (city === "spb" || city === "sankt-peterburg") return "sankt-peterburg";
-  if (city === "yekaterinburg" || city === "ekaterinburg") return "ekaterinburg";
-  return city;
+  const info = cityInfo(city);
+  return info ? info.m2 : null; // null → город на M2 недоступен
 }
 
 function cianHost(city) {
-  if (
-    ["moscow", "moskva", "spb", "sankt-peterburg"].includes(city)
-  )
-    return "www";
-  if (city === "yekaterinburg" || city === "ekaterinburg") return "ekaterinburg";
-  if (city === "novosibirsk") return "nsk";
-  return city;
+  const info = cityInfo(city);
+  if (!info) return "www";
+  return info.cian || info.m2 || "www";
 }
 
 // ---------- Fetch helpers ----------
@@ -138,17 +205,21 @@ async function fetchJson(url, timeout = 12000) {
 
 // ---------- Парсеры ----------
 
-// Дом.РФ: открытый REST API
-async function parseDomRf(out, sources) {
+// Дом.РФ: открытый REST API. Регион задаётся env DOMRF_REGION_ID,
+// иначе берётся из CITY_DB[city].domrf (если есть).
+// Внимание: DNS хоста api.domrf.ru нестабилен — источник может просто недоступен.
+async function parseDomRf(out, sources, city) {
   try {
+    const regionId =
+      Number(process.env.DOMRF_REGION_ID) || (cityInfo(city) || {}).domrf || 7;
     const data = await fetchJson(
-      "https://api.domrf.ru/v1/listings?limit=30&search_region=7"
+      `https://api.domrf.ru/v1/listings?limit=30&search_region=${regionId}`
     );
     const items = data?.items || data?.data?.items || [];
     let added = 0;
     for (const raw of items) {
       const l = raw.listing || raw;
-      const apt = normalizeDomRf(l);
+      const apt = normalizeDomRf(l, city);
       if (apt) {
         out.push(apt);
         added++;
@@ -160,7 +231,7 @@ async function parseDomRf(out, sources) {
   }
 }
 
-function normalizeDomRf(l) {
+function normalizeDomRf(l, city) {
   const price = num(l.price) || num(l.cost);
   const area = num(l.total_area) || num(l.area);
   const rooms = num(l.room) || num(l.rooms) || 1;
@@ -173,7 +244,7 @@ function normalizeDomRf(l) {
     source: "Дом.РФ",
     rooms,
     district: districtOf(addr),
-    address: addr || "г. Новосибирск",
+    address: addr || cityName(city),
     price,
     area,
     floor: num(l.floor) || 1,
@@ -186,7 +257,12 @@ function normalizeDomRf(l) {
 
 // M2.ru: ЖК и предложения по комнатности
 async function parseM2(out, sources, city) {
-  const url = `https://m2.ru/${m2Slug(city)}/novostroyki/`;
+  const slug = m2Slug(city);
+  if (!slug) {
+    sources["M2.ru"] = { ok: false, error: `город не поддерживается M2: ${city}` };
+    return;
+  }
+  const url = `https://m2.ru/${slug}/novostroyki/`;
   try {
     const html = await fetchText(url);
     const cards = html.split(/NewBuildingSerpSnippet__borderWrapper/).slice(1);
@@ -298,9 +374,8 @@ async function parseCian(out, sources, city) {
       );
       const addr = (
         geo.join(" , ") ||
-        distRaw ||
-        pick(text, /(Новосибирская область[\s\S]{0,120}?)(?= \d[\d\s]{2,}\s*₽)/, 1) ||
-        "г. Новосибирск"
+        (distRaw ? districtRus(distRaw) + " район" : "") ||
+        cityName(city)
       ).trim();
       const urlM =
         pick(seg, /href="(https?:\/\/(?:www\.)?[^"]*?(?:\/flats\/|kupit-kvartiru|prodazha)[^"]*?)"/, 1) ||
@@ -334,7 +409,9 @@ async function parseCian(out, sources, city) {
 }
 
 // Универсальный JSON-LD парсер (ДомКлик и др.)
-async function parseJsonLd(source, url, out, sources) {
+let ldCity = "";
+async function parseJsonLd(source, url, out, sources, city) {
+  ldCity = city || "";
   try {
     const html = await fetchText(url);
     const matches = html.matchAll(
@@ -369,7 +446,7 @@ function extractApts(obj, source, pageUrl) {
         t.includes("product") || t.includes("realestate")
       );
     })
-    .map((n) => normalizeLd(n, source, pageUrl))
+    .map((n) => normalizeLd(n, source, pageUrl, ldCity))
     .filter(Boolean)
     .slice(0, 30);
 }
@@ -384,7 +461,7 @@ function walk(v, acc) {
   }
 }
 
-function normalizeLd(n, source, pageUrl) {
+function normalizeLd(n, source, pageUrl, currentCity) {
   const area = num(n.floorSize?.value?.value || n.floorSize?.value || n.floorSize);
   let price = 0;
   const offers = n.offers;
@@ -404,7 +481,7 @@ function normalizeLd(n, source, pageUrl) {
     source,
     rooms,
     district: districtOf(addr),
-    address: addr || "г. Новосибирск",
+    address: addr || cityName(currentCity || ""),
     price,
     area,
     floor: 1,
@@ -444,15 +521,17 @@ async function fetchAllSources(city) {
   const results = [];
   const sources = {};
   await Promise.allSettled([
-    parseDomRf(results, sources),
+    parseDomRf(results, sources, city),
     parseM2(results, sources, city),
     parseCian(results, sources, city),
-    parseJsonLd("ДомКлик", "https://domclick.ru/", results, sources),
+    parseJsonLd("ДомКлик", "https://domclick.ru/", results, sources, city),
   ]);
   return { results, sources };
 }
 
 module.exports = {
+  CITY_DB,
+  cityName,
   UA,
   TTL_MS,
   cache,

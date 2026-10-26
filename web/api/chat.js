@@ -7,30 +7,29 @@
  *   - инфраструктурные запросы (метро, школа, парк, садик, магазины...).
  */
 const {
+  CITY_DB,
   cacheGet,
   cacheSet,
   fetchAllSources,
   filterResults,
+  cityName,
 } = require("./_lib/parser");
+const { llmEnabled, llmModel, chatComplete } = require("./_lib/llm");
 
-// ---------- Города (из legacy app.js) ----------
-const CITIES = [
-  ["новосибирск", "Новосибирск", "novosibirsk"],
+// ---------- Города: основа из CITY_DB + сленг (из legacy app.js) ----------
+const CITIES = Object.entries(CITY_DB).map(([slug, v]) => [v.name.toLowerCase(), v.name, slug]);
+// сленг и альтернативные написания
+const CITY_SLANG = [
   ["нск", "Новосибирск", "novosibirsk"],
-  ["москва", "Москва", "moscow"],
   ["мск", "Москва", "moscow"],
-  ["москву", "Москва", "moscow"],
-  ["санкт-петербург", "Санкт-Петербург", "spb"],
-  ["петербург", "Санкт-Петербург", "spb"],
   ["питер", "Санкт-Петербург", "spb"],
   ["спб", "Санкт-Петербург", "spb"],
-  ["екатеринбург", "Екатеринбург", " ekaterinburg".trim()],
   ["екб", "Екатеринбург", "ekaterinburg"],
-  ["казань", "Казань", "kazan"],
-  ["нижний новгород", "Нижний Новгород", "nizhny-novgorod"],
-  ["уфа", "Уфа", "ufa"],
-  ["красноярск", "Красноярск", "krasnoyarsk"],
-];
+].map(([k, name, slug]) => [new RegExp("(?<![а-яё])" + k, "i"), name, slug]);
+
+// только начало слова (ом-мск-е не должно матчить «мск» → Москва)
+const findCity = (lower, candidates) =>
+  candidates.find(([k]) => (k instanceof RegExp ? k.test(lower) : new RegExp("(?<![а-яё])" + k, "i").test(lower)));
 
 const DISTRICTS = [
   ["академгородок", "Академгородок"],
@@ -69,13 +68,11 @@ function parseNaturalLanguage(text) {
   const lower = (text || "").toLowerCase();
   const filters = {};
 
-  // Комнаты (регэксп из KvartiraPro + сленг из legacy)
-  const roomsMatch = lower.match(/(\d)\s*[- ]?\s*(?:комнат|комн|к\b)/);
-  if (roomsMatch) filters.rooms = parseInt(roomsMatch[1]);
-  if (/(однушк|студи|1-?комнат|1к)\b/.test(lower)) filters.rooms = 1;
-  if (/(двушк|2-?комнат|2к)\b/.test(lower)) filters.rooms = 2;
-  if (/(тр[её]шк|3-?комнат|3к)\b/.test(lower)) filters.rooms = 3;
-  if (/(четыр[её]х|4-?комнат|4к)\b/.test(lower)) filters.rooms = 4;
+  // Комнаты (регэксп из KvartiraPro + сленг из legacy); позже — старше приоритет: 1 → 4
+  if (/однуш|студи|1-?комнат/.test(lower)) filters.rooms = 1;
+  if (/двушк|2-?комнат/.test(lower)) filters.rooms = 2;
+  if (/тр[её]шк|тр[её]х-?комнат|3-?комнат/.test(lower)) filters.rooms = 3;
+  if (/четыр[её]х|4-?комнат/.test(lower)) filters.rooms = 4;
 
   // Цена (KvartiraPro + «бюджет N млн» из legacy)
   const priceMatch = lower.match(
@@ -103,19 +100,35 @@ function parseNaturalLanguage(text) {
 
   // Площадь (диапазон / от / до)
   const range = lower.match(/(\d{2,3})\s*[-–]\s*(\d{2,3})\s*м/);
-  const from = lower.match(/(?:от|не меньше|не менее)\s*(\d{2,3})\s*м/);
+  const from = lower.match(/(?:от|не меньше|не менее)\s*(\d{2,3})\s*(?:до\s*(\d{2,3}))?\s*м2?/);
   const to = lower.match(/(?:до|не больше)\s*(\d{2,3})\s*м\s*2?/);
   if (range) {
     filters.minArea = parseFloat(range[1]);
     filters.maxArea = parseFloat(range[2]);
   } else {
-    if (from) filters.minArea = parseFloat(from[1]);
-    if (to) filters.maxArea = parseFloat(to[1]);
+    if (from) {
+      filters.minArea = parseFloat(from[1]);
+      if (from[2]) filters.maxArea = parseFloat(from[2]);
+    }
+    if (to) filters.maxArea = filters.maxArea || parseFloat(to[1]);
   }
 
-  // Город
-  const cityHit = CITIES.find(([k]) => lower.includes(k));
-  if (cityHit) filters.city = cityHit[2];
+  // Город: сленг → точное имя → корень имени (терпит падежи: «в Казани», «по Самаре»)
+  const slangHit = findCity(lower, CITY_SLANG);
+  if (slangHit) filters.city = slangHit[2];
+  else {
+    const exact = findCity(lower, CITIES);
+    if (exact) filters.city = exact[2];
+    else {
+      const stem = CITIES.find(
+        ([k]) => k.length >= 4 && new RegExp("(?<![а-яё])" + k.slice(0, k.length - 2), "i").test(lower)
+      );
+      if (stem) filters.city = stem[2];
+      else if (/(нижн[ей]|горьк)/.test(lower)) filters.city = "nizhny-novgorod";
+      else if (/ростов/.test(lower)) filters.city = "rostov-na-donu";
+      else if (/краснодар/.test(lower)) filters.city = "krasnodar";
+    }
+  }
 
   // «не в центре» / «не центр» -> исключаем Центр (спальные районы)
   if (/(не\s+в\s+центре|не\s+центр|спальн)/.test(lower)) {
@@ -124,7 +137,7 @@ function parseNaturalLanguage(text) {
 
   // Район (если это не «не в центре»)
   const d = DISTRICTS.find(([k]) => lower.includes(k));
-  if (d) filters.district = d[1].charAt(0).toUpperCase() + d[1].slice(1);
+  if (d && !filters.excludeDistrict) filters.district = d[1].charAt(0).toUpperCase() + d[1].slice(1);
 
   // Ключевые слова + инфраструктура
   const keywords = [];
@@ -149,6 +162,93 @@ function parseNaturalLanguage(text) {
   return filters;
 }
 
+// ---------- Фильтры через LLM (OpenRouter), regex-парсер — фоллбэк ----------
+// Возвращает {filters:null} при отсутствии ключа/ошибке — тогда работает parseNaturalLanguage.
+const LLM_FILTER_SCHEMA = {
+  city: "slug из списка: " + Object.keys(CITY_DB).join(", ") + " | null",
+  rooms: "число комнат | null",
+  minPrice: "₽ | null",
+  maxPrice: "₽ | null",
+  minArea: "м² | null",
+  maxArea: "м² | null",
+  district: "название района | null",
+  excludeDistrict: "что исключить | null",
+  keywords: "до 5 ключевых слов из текста запроса | []",
+};
+
+async function parseNLWithLLM(message) {
+  if (!llmEnabled()) return null;
+  const sys =
+    "Ты извлекаешь фильтры поиска квартиры из сообщения на русском. " +
+    `Только JSON без пояснений, схема: ${JSON.stringify(LLM_FILTER_SCHEMA)}. ` +
+    "Цены в рублях (млн → ×1e6, тыс → ×1e3). Сленг: двушка=2, однушка=1, трёшка=3. " +
+    "«не в центре» → excludeDistrict='Центр'.";
+  const text = await chatComplete(
+    [
+      { role: "system", content: sys },
+      { role: "user", content: message },
+    ],
+    { maxTokens: 300, temperature: 0 }
+  );
+  if (!text) return null;
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try {
+    const raw = JSON.parse(m[0]);
+    const filters = {};
+    for (const k of Object.keys(LLM_FILTER_SCHEMA)) {
+      if (k === "city") continue; // город маппится отдельно ниже
+      if (k === "keywords") {
+        if (Array.isArray(raw.keywords) && raw.keywords.length)
+          filters.keywords = raw.keywords.map(String).slice(0, 5);
+      } else if (raw[k] != null && raw[k] !== "" && raw[k] !== false) {
+        filters[k] = raw[k];
+      }
+    }
+    // slug города: точное совпадение либо по имени
+    let slug =
+      typeof raw.city === "string" && CITY_DB[raw.city] ? raw.city : null;
+    if (!slug && typeof raw.city === "string") {
+      const known = Object.entries(CITY_DB).find(
+        ([, v]) => v.name.toLowerCase() === raw.city.toLowerCase()
+      );
+      slug = known ? known[0] : null;
+    }
+    if (slug) filters.city = slug;
+    return Object.keys(filters).length ? filters : {};
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Живой ответ через LLM ----------
+async function generateResponseLLM(filters, items, city) {
+  if (!llmEnabled()) return null;
+  const listing = items.slice(0, 10).map(
+    (a, i) =>
+      `${i + 1}) ${a.rooms}-комн., ${a.area} м², ${a.district}, ${a.address} — от ${(
+        a.price / 1e6
+      ).toFixed(2)} млн ₽ [${a.source}]`
+  );
+  const sys =
+    "Ты — дружелюбный ассистент по поиску недвижимости в России. Ответь на русском, " +
+    "сметой 1-2 предложения:_confirm найденные варианты, кратко подытожь цены, " +
+    "если ничего не нашлось — мягко посоветуй расширить бюджет, площадь или район. " +
+    "Без заголовков и списков, живым текстом.";
+  return await chatComplete(
+    [
+      { role: "system", content: sys },
+      {
+        role: "user",
+        content:
+          `Поиск по запросу: "${JSON.stringify(filters)}", город: ${cityName(city)}.\n` +
+          `Найдено ${items.length} вариантов:\n${listing.join("\n") || "(пусто)"}`,
+      },
+    ],
+    { maxTokens: 220, temperature: 0.7 }
+  );
+}
+
 function generateResponse(filters, count) {
   const parts = [];
   if (filters.rooms) parts.push(`${filters.rooms}-комнатную`);
@@ -163,7 +263,7 @@ function generateResponse(filters, count) {
     parts.push(a.join(" "));
   }
   if (filters.keywords?.length) parts.push(filters.keywords.join(", "));
-  if (filters.city) parts.push(`город: ${filters.city}`);
+  if (filters.city && CITY_DB[filters.city]) parts.push(`город: ${CITY_DB[filters.city].name}`);
 
   const queryDesc = parts.length ? parts.join(", ") : "квартиру";
   return `Ищу ${queryDesc}... Найдено ${count} вариантов.`;
@@ -190,8 +290,21 @@ module.exports = async function handler(req, res) {
     const { message, city = "novosibirsk" } = body || {};
     if (!message) return res.status(400).json({ error: "Message required" });
 
-    const filters = parseNaturalLanguage(message);
-    filters.city = city;
+    // 1) Извлечение фильтров: сначала LLM (если есть ключ), затем regex-фоллбэк и частичное слияние
+    let filters = {};
+    let parsedBy = "regex";
+    try {
+      const llmFilters = await parseNLWithLLM(message);
+      if (llmFilters) {
+        // regex как страховка: добавляем поля, которые LLM не заполнил
+        filters = llmFilters;
+        parsedBy = "llm";
+      }
+    } catch {}
+    const regexFilters = parseNaturalLanguage(message);
+    filters = { ...regexFilters, ...filters };
+    filters.city = filters.city || city;
+    filters.city = CITY_DB[filters.city] ? filters.city : "novosibirsk"; // нормализуем slug
 
     const key = "chat:" + JSON.stringify({ city, ...filters });
     const hit = cacheGet(key);
@@ -208,10 +321,15 @@ module.exports = async function handler(req, res) {
       cacheSet(key, { data: { items, sources, fetchedAt } });
     }
 
-    const responseText = generateResponse(filters, items.length);
+    let responseText = generateResponse(filters, items.length);
+    try {
+      const llmText = await generateResponseLLM(filters, items, filters.city);
+      if (llmText) responseText = llmText;
+    } catch {}
 
     res.status(200).json({
       response: responseText,
+      parsedBy,
       filters,
       items: items.slice(0, 10), // Топ-10 для чата
       totalCount: items.length,
@@ -224,3 +342,5 @@ module.exports = async function handler(req, res) {
     res.status(500).json({ error: e.message });
   }
 };
+
+module.exports.parseNaturalLanguage = parseNaturalLanguage;
