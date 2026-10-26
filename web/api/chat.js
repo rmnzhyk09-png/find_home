@@ -347,9 +347,11 @@ module.exports = async function handler(req, res) {
     const hit = cacheGet(key);
     let items, sources, fetchedAt, cached = false;
     let relaxed = null;
+    let hint = null;
 
     if (hit) {
       ({ items, sources, fetchedAt } = hit.data);
+      hint = hit.data.hint || null;
       cached = true;
       relaxed = null;
     } else {
@@ -357,13 +359,13 @@ module.exports = async function handler(req, res) {
       sources = src;
       items = filterResults(results, filters);
       fetchedAt = new Date().toISOString();
-      // Релаксация: чтобы не отвечать пустотой, понемногу ослабляем строгость
+      // Релаксация: ослабляем только район/площадь/ключевые слова.
+      // Бюджет (цена) не трогаем — иначе человеку показывают квартиры вдвое дороже запроса.
       if (items.length === 0 && results.length > 0) {
         const steps = [
           { label: "без ключевых слов", f: { ...filters, keywords: undefined } },
           { label: "без района", f: { ...filters, keywords: undefined, district: undefined, excludeDistrict: undefined } },
           { label: "без площади", f: { ...filters, keywords: undefined, district: undefined, excludeDistrict: undefined, minArea: undefined, maxArea: undefined } },
-          { label: "только city+rooms", f: { ...filters, keywords: undefined, district: undefined, excludeDistrict: undefined, minArea: undefined, maxArea: undefined, maxPrice: undefined, minPrice: undefined } },
         ];
         for (const st of steps) {
           const tryItems = filterResults(results, st.f);
@@ -373,12 +375,18 @@ module.exports = async function handler(req, res) {
             break;
           }
         }
-        if (items.length === 0 && results.length > 0) {
-          items = results;
-          relaxed = { dropped: "все фильтры кроме города", appliedFilters: { city: filters.city } };
+        // Ничего в бюджете? Подскажем, сколько стоит ближайшее подходящее по комнатам/городу.
+        if (items.length === 0) {
+          const sameRooms = filters.rooms ? results.filter((a) => a.rooms === filters.rooms) : results;
+          const pool = sameRooms.length > 0 ? sameRooms : results;
+          const cheapest = pool.reduce(
+            (min, a) => (a.price > 0 && (!min || a.price < min.price) ? a : min),
+            null
+          );
+          if (cheapest) hint = { minPrice: cheapest.price, count: pool.length };
         }
       }
-      cacheSet(key, { data: { items, sources, fetchedAt } });
+      cacheSet(key, { data: { items, sources, fetchedAt, hint } });
     }
 
     let responseText = generateResponse(filters, items.length);
@@ -388,6 +396,12 @@ module.exports = async function handler(req, res) {
       if (clean) responseText = clean;
       else if (llmText) console.warn("[chat] LLM-ответ отброшен: не похож на русский текст");
     } catch {}
+    if (hint && items.length === 0) {
+      responseText =
+        `В заданный бюджет ничего не нашлось. ` +
+        `Ближайшие подходящие варианты — от ${(hint.minPrice / 1e6).toFixed(1)} млн ₽: ` +
+        `можно увеличить бюджет или расширить район.`;
+    }
 
     res.status(200).json({
       response: responseText,
@@ -400,6 +414,7 @@ module.exports = async function handler(req, res) {
       fetchedAt,
       cached,
       relaxed, // {dropped, appliedFilters} | null — какие фильтры пришлось смягчить
+      hint, // {minPrice, count} | null — если в бюджет ничего не нашлось
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
