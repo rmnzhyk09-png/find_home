@@ -75,7 +75,9 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   };
 }
 
-export function getRelativeTime(date: Date): string {
+export function getRelativeTime(value: Date | string | number): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const minutes = Math.floor(diff / 60000);
